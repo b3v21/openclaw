@@ -78,7 +78,17 @@ function runPreview(root: string, command = "update") {
 
 async function snapshotTree(root: string): Promise<string[]> {
   const snapshot: string[] = [];
+  const logDirectory = path.join("state", "logs");
   for (const { relativePath, dirent } of await listDirectoryTreeStrict(root)) {
+    // Startup refusals can write daily diagnostics without mutating update state.
+    if (
+      (relativePath === logDirectory && dirent.isDirectory()) ||
+      (path.dirname(relativePath) === logDirectory &&
+        dirent.isFile() &&
+        /^openclaw-\d{4}-\d{2}-\d{2}\.log$/u.test(dirent.name))
+    ) {
+      continue;
+    }
     const absolutePath = path.join(root, relativePath);
     if (dirent.isDirectory()) {
       snapshot.push(`d ${relativePath}`);
